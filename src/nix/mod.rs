@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
-use std::process::Stdio;
+use std::process::{ExitStatus, Stdio};
 
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -51,8 +52,8 @@ pub enum NixError {
     #[snafu(display("Nix exited with error code: {}", exit_code))]
     NixFailure { exit_code: i32 },
 
-    #[snafu(display("Nix was interrupted"))]
-    NixKilled,
+    #[snafu(display("Nix was killed by signal {}", signal))]
+    NixKilled { signal: i32 },
 
     #[snafu(display("This operation is not supported"))]
     Unsupported,
@@ -88,6 +89,15 @@ impl From<key::KeyError> for NixError {
 impl From<ValidationErrors> for NixError {
     fn from(errors: ValidationErrors) -> Self {
         Self::ValidationError { errors }
+    }
+}
+
+impl From<ExitStatus> for NixError {
+    fn from(status: ExitStatus) -> Self {
+        match status.code() {
+            Some(exit_code) => Self::NixFailure { exit_code },
+            None => Self::NixKilled { signal: status.signal().unwrap() },
+        }
     }
 }
 
@@ -147,10 +157,7 @@ impl NixCommand for Command {
         if exit.success() {
             Ok(())
         } else {
-            Err(match exit.code() {
-                Some(exit_code) => NixError::NixFailure { exit_code },
-                None => NixError::NixKilled,
-            })
+            Err(exit.into())
         }
     }
 
@@ -168,10 +175,7 @@ impl NixCommand for Command {
             // FIXME: unwrap
             Ok(String::from_utf8(output.stdout).unwrap())
         } else {
-            Err(match output.status.code() {
-                Some(exit_code) => NixError::NixFailure { exit_code },
-                None => NixError::NixKilled,
-            })
+            Err(output.status.into())
         }
     }
 

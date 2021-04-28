@@ -75,7 +75,7 @@ impl CommandExecution {
         if exit.success() {
             Ok(())
         } else {
-            Err(NixError::NixFailure { exit_code: exit.code().unwrap() })
+            Err(exit.into())
         }
     }
 }
