@@ -116,6 +116,9 @@ pub struct NodeConfig {
     allow_local_deployment: bool,
     tags: Vec<String>,
 
+    #[serde(rename = "privilegeEscalationCommand")]
+    privilege_escalation_command: Vec<String>,
+
     #[validate(custom = "validate_keys")]
     keys: HashMap<String, Key>,
 }
@@ -127,6 +130,7 @@ impl NodeConfig {
     pub fn to_ssh_host(&self) -> Option<Ssh> {
         self.target_host.as_ref().map(|target_host| {
             let mut host = Ssh::new(self.target_user.clone(), target_host.clone());
+            host.set_privilege_escalation_command(self.privilege_escalation_command.clone());
 
             if let Some(target_port) = self.target_port {
                 host.set_port(target_port);

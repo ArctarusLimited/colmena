@@ -129,6 +129,32 @@ let
           type = types.attrsOf keyType;
           default = {};
         };
+        replaceUnknownProfiles = lib.mkOption {
+          description = ''
+            Allow a configuration to be applied to a host running a profile we
+            have no knowledge of. By setting this option to false, you reduce
+            the likelyhood of rolling back changes made via another Colmena user.
+
+            Unknown profiles are usually the result of either:
+            - The node had a profile applied, locally or by another Colmena.
+            - The host running Colmena garbage-collecting the profile.
+
+            To force profile replacement on all targeted nodes during apply,
+            use the flag `--force-replace-unknown-profiles`.
+          '';
+          type = types.bool;
+          default = true;
+        };
+        privilegeEscalationCommand = lib.mkOption {
+          description = ''
+            Command to use to elevate privileges when activating the new profiles on SSH hosts.
+
+            This is used on SSH hosts when `deployment.targetUser` is not `root`.
+            The user must be allowed to use the command non-interactively.
+          '';
+          type = types.listOf types.str;
+          default = [ "sudo" "-H" "--" ];
+        };
       };
     };
   };
