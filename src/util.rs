@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -79,7 +80,7 @@ impl CommandExecution {
     }
 }
 
-pub fn hive_from_args(args: &ArgMatches<'_>) -> NixResult<Hive> {
+fn hive_path_from_args(args: &ArgMatches<'_>) -> Result<HivePath, std::io::Error> {
     let path = match args.occurrences_of("config") {
         0 => {
             // traverse upwards until we find hive.nix
@@ -143,22 +144,31 @@ pub fn hive_from_args(args: &ArgMatches<'_>) -> NixResult<Hive> {
             if !fpath.exists() && path.contains(":") {
                 // Treat as flake URI
                 let hive_path = HivePath::Flake(path);
-                let mut hive = Hive::new(hive_path)?;
-
-                if args.is_present("show-trace") {
-                    hive.set_show_trace(true);
-                }
-
-                return Ok(hive);
+                return Ok(hive_path);
             }
 
             fpath
         }
     };
 
-    let hive_path = HivePath::from_path(path);
-    let mut hive = Hive::new(hive_path)?;
+    return Ok(HivePath::from_path(&path));
+}
 
+
+pub fn hive_from_args(args: &ArgMatches<'_>) -> NixResult<Hive> {
+    let path = hive_path_from_args(args)?;
+
+    // grab any extra arguments to pass to Nix
+    let extra_args: Vec<String>;
+    if env::var("COLMENA_EVAL_ARGS").is_ok() {
+        extra_args = env::var("COLMENA_EVAL_ARGS").unwrap()
+            .split_whitespace().map(|s| s.to_string()).collect();
+    } else {
+        extra_args = Vec::new();
+    }
+
+    let mut hive = Hive::new(path, extra_args)?;
+    
     if args.is_present("show-trace") {
         hive.set_show_trace(true);
     }

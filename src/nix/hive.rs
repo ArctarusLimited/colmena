@@ -85,10 +85,13 @@ pub struct Hive {
 
     /// Whether to pass --show-trace in Nix commands.
     show_trace: bool,
+
+    // Extra arguments to be passed to `nix eval`
+    extra_args: Vec<String>
 }
 
 impl Hive {
-    pub fn new(path: HivePath) -> NixResult<Self> {
+    pub fn new(path: HivePath, extra_args: Vec<String>) -> NixResult<Self> {
         let mut eval_nix = NamedTempFile::new()?;
         eval_nix.write_all(HIVE_EVAL).unwrap();
 
@@ -99,6 +102,7 @@ impl Hive {
             context_dir,
             eval_nix: eval_nix.into_temp_path(),
             show_trace: false,
+            extra_args: extra_args,
         })
     }
 
@@ -270,6 +274,10 @@ impl<'hive> NixInstantiate<'hive> {
 
         if self.hive.show_trace {
             command.arg("--show-trace");
+        }
+
+        for extra_arg in &self.hive.extra_args {
+            command.arg(extra_arg);
         }
 
         command

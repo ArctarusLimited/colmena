@@ -34,7 +34,7 @@ impl TempHive {
         temp_file.write_all(text.as_bytes()).unwrap();
 
         let hive_path = HivePath::from_path(temp_file.path());
-        let hive = Hive::new(hive_path).unwrap();
+        let hive = Hive::new(hive_path, Vec::new()).unwrap();
 
         Self {
             hive,
