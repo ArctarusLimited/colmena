@@ -4,7 +4,7 @@ let
     inherit (lib) mapAttrs filterAttrs;
 in {
     # Utility method to create Colmena hive outputs from a set of NixOS configurations
-    mkColmenaHive = { nodes, system }: let
+    mkColmenaHive = { nodes, system, lib ? lib }: let
         # convert the deployment config inside the nodes to json
         # nodes must be an attrset of NixOS configurations with hostnames as keys
         deploymentConfig = mapAttrs (name: eval: eval.config.deployment) nodes;
